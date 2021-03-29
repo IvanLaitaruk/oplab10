@@ -7,30 +7,37 @@
 
 //-----------------------------------------------------------------------------------------------------------------
 //creates and sets the list with data from file, the memory is free after ending the work
-void SetListFromFile(student* pHead, FILE* filePointerIn) {
+void SetListFromFile(student* pCur, FILE* filePointerIn, student** pHead) {
 	char chStrFromFile[50];
 	char* chpLimits = " ";
 	char* chpPutToList;
 	for (int i = 0; i < STUDENTS_AMOUNT; i++) {
 		fgets(chStrFromFile, 50, filePointerIn);
 		chpPutToList = strtok(chStrFromFile, chpLimits);
-		strcpy(pHead->schSurname, chpPutToList);
+		strcpy(pCur->schSurname, chpPutToList);
 		chpPutToList = strtok(NULL, chpLimits);
-		strcpy(pHead->schName, chpPutToList);
+		strcpy(pCur->schName, chpPutToList);
 		chpPutToList = strtok(NULL, chpLimits);
-		strcpy(pHead->schDate, chpPutToList);
+		strcpy(pCur->schDate, chpPutToList);
 		chpPutToList = strtok(NULL, chpLimits);
 		double dblSumOfMarks = 0;
 		for (int j = 0; j < MARKS_AMOUNT; j++) {
-			pHead->nMarks[j] = atoi(chpPutToList);
-			dblSumOfMarks += pHead->nMarks[j];
+			pCur->nMarks[j] = atoi(chpPutToList);
+			dblSumOfMarks += pCur->nMarks[j];
 			chpPutToList = strtok(NULL, chpLimits);
 		}
-		pHead->dblAverageMark = dblSumOfMarks / MARKS_AMOUNT;
-		student* nextStudent = (student*)malloc(sizeof(student));
-		nextStudent->next = NULL;
-		pHead->next = nextStudent;
-		pHead = nextStudent;
+		pCur->dblAverageMark = dblSumOfMarks / MARKS_AMOUNT;
+		if (*pHead == NULL)
+		{
+			*pHead = pCur;
+		}
+		if (i != STUDENTS_AMOUNT - 1)
+		{
+			student* nextStudent = (student*)malloc(sizeof(student));
+			nextStudent->next = NULL;
+			pCur->next = nextStudent;
+			pCur = nextStudent;
+		}
 	}
 }
 
@@ -56,7 +63,6 @@ void PrintFileStudents(student* pHead, FILE* filePointer) {
 		fprintf(filePointer, "___________________________________________________\n");
 		TempList = TempList->next;
 	}
-	TempList = pHead;
 }
 
 //-----------------------------------------------------------------------------------------------------------------
@@ -74,44 +80,52 @@ int GetListVolume(student* pHead) {
 
 //-----------------------------------------------------------------------------------------------------------------
 //returns the list without deleted student
-student* DeleteStudentFromList(student* pHead, int nStudentNum) {
-	student* TempList = pHead;
+void DeleteStudentFromList(student** pHead, int nStudentNum) {
+	student* TempList = *pHead;
 	int nListVolume = GetListVolume(TempList);
 	printf("Do you want to delete all the students that have 2, 3, 4 or 5?(1 - yes, 0 - no)\n");
 	int nDeleteOption;
 	scanf("%d", &nDeleteOption);
 	if (nDeleteOption) {
+		while (TempList->nMarks[0] != 1 || TempList->nMarks[1] != 1 || TempList->nMarks[2] != 1)
+		{
+			student* DeleteRoot = TempList;
+			TempList = TempList->next;
+			free(DeleteRoot);
+			nListVolume--;
+		}
 		for (int i = 0; i < nListVolume; i++) {
-			if (TempList->nMarks[0] != 1 || TempList->nMarks[1] != 1 || TempList->nMarks[2] != 1) {//if there`re only '1' marks,
-				TempList = TempList->next;                                                         //the student won`t be deleted.
+			if (TempList->next->nMarks[0] != 1 || TempList->next->nMarks[1] != 1 || TempList->next->nMarks[2] != 1) {//if there`re only '1' marks,
+				student* DeleteElem = TempList->next;                                                                //the student won`t be deleted.
+				TempList->next = TempList->next->next;
+				free(DeleteElem);
+				nListVolume--;
 			}
 		}
-		TempList->next->next = NULL;
-		PrintList(TempList);
 	} else {
-		if (nStudentNum - 1 == 0) {
+		if (nStudentNum == 1) {
+			student* DeleteRoot = TempList;
 			TempList = TempList->next;
+			free(DeleteRoot);
 		} else {
-			for (int i = 0; i < nStudentNum - 2; i++) {
+			for (int i = 1; i < nStudentNum - 1; i++) {
 				TempList = TempList->next;
 			}
+			student* DeleteRoot = TempList->next;
 			TempList->next = TempList->next->next;
-			TempList = pHead;
+			free(DeleteRoot);
 		}
 	}
-	return TempList;
 }
 
 //-----------------------------------------------------------------------------------------------------------------
 //returns the list with added student
-student* AddStudentToList(student* pHead) {
+void AddStudentToList(student** pHead) {
 	printf("Enter the student to add (Example:'Added Student 09.01.2021 2 2 4')\n");
 	char chsStudentAdd[300];
 	scanf(" %[^\t\n]s", &chsStudentAdd);
 	char* chpLimits = " ";
-	student StudentAdd;
 	student* pStudentAdd = (student*)malloc(sizeof(student));
-	pStudentAdd = &StudentAdd;
 	strcpy(pStudentAdd->schSurname, strtok(chsStudentAdd, chpLimits));
 	strcpy(pStudentAdd->schName, strtok(NULL, chpLimits));
 	strcpy(pStudentAdd->schDate, strtok(NULL, chpLimits));
@@ -124,35 +138,35 @@ student* AddStudentToList(student* pHead) {
 	}
 	pStudentAdd->dblAverageMark /= MARKS_AMOUNT;
 	pStudentAdd->next = NULL;
-	student* TempList = pHead;
+	student* TempList = *pHead;
 	if (strcmp(pStudentAdd->schSurname, TempList->next->schSurname) < 0) {//add the student in sorted list(eng alphabet)
-		pStudentAdd->next = TempList;                                     //set new student at the top of the list
-		return pStudentAdd;
+		pStudentAdd->next = *pHead;                                       //set new student at the top of the list
+		*pHead = pStudentAdd;
+		return;
 	}
 	int nListVolume = GetListVolume(TempList);
 	for (int i = 0; i < nListVolume; i++) {
 		if (i == nListVolume - 1) {//add new student to the end of the list
 			pStudentAdd->next = NULL;
 			TempList->next = pStudentAdd;
+			*pHead = TempList;
 			break;
 		}
 		if (strcmp(pStudentAdd->schSurname, TempList->next->schSurname) < 0) {//add new student in a sorting position
 			pStudentAdd->next = TempList->next;
 			TempList->next = pStudentAdd;
+			*pHead = TempList;
 			break;
 		} else {
 			TempList = TempList->next;
 		}
 	}
-	TempList = pHead;
-	PrintList(TempList);
-	return TempList;
 }
 
 //-----------------------------------------------------------------------------------------------------------------
 //returns eng alphabetically sorted list
-student* BubbleSortList(student* pHead) {
-	student* SortList = pHead;
+void BubbleSortList(student** pHead) {
+	student* SortList = *pHead;
 	student* TempList = SortList;
 	int nListVolume = GetListVolume(SortList);
 	printf("Do you want to leave only students that were born in autumn?(1 - yes, 0 - no)\n");
@@ -168,19 +182,28 @@ student* BubbleSortList(student* pHead) {
 			nStudentsMonths[i] = atoi(strtok(NULL, chpLimits));
 			SortList = SortList->next;
 		}
-		SortList = pHead;                                                    //9, 10, 11 - months of autumn
-		while (!((nStudentsMonths[0] == 9) || (nStudentsMonths[0] == 10) || (nStudentsMonths[0] == 11))) {
+		SortList = *pHead;                                                  
+		int i = 0;  //9, 10, 11 - months of autumn
+		while(!((nStudentsMonths[i] == 9) || (nStudentsMonths[i] == 10) || (nStudentsMonths[i] == 11)))
+		{
+			student* DeleteRoot = SortList;
 			SortList = SortList->next;
+			free(DeleteRoot);
+			i++;
 		}
-		for (int i = 0; i < nListVolume - 1; i++) {
+		while( i < nListVolume - 1) 
+		{
 			if (!((nStudentsMonths[i + 1] == 9) || (nStudentsMonths[i + 1] == 10) || (nStudentsMonths[i + 1] == 11))) {
+				student* DeleteRoot = SortList->next;
 				SortList->next = SortList->next->next;
+				free(DeleteRoot);
 			} else {
 				SortList = SortList->next;
 			}
+			i++;
 		}
 		SortList->next = NULL;
-		SortList = pHead;
+		SortList = *pHead;
 	}
 	int nContinueSort = 1;
 	while (nContinueSort) {//stops when the list is eng alphabetically sorted
@@ -188,10 +211,10 @@ student* BubbleSortList(student* pHead) {
 			SortList = SortList->next;
 			TempList->next = SortList->next;
 			SortList->next = TempList;
-			pHead = SortList;
+			*pHead = SortList;
 		}
 		int nStopSort = 1;
-		while (SortList->next->next->next) {
+		while (SortList->next->next) {
 			if (strcmp(SortList->next->schSurname, SortList->next->next->schSurname) > 0) {
 				nStopSort = 0;
 				SwapStudentsList(SortList);
@@ -199,16 +222,17 @@ student* BubbleSortList(student* pHead) {
 			SortList = SortList->next;
 		}
 		if (nStopSort) {
-			SortList = pHead;
+			SortList = *pHead;
 			if (strcmp(SortList->schSurname, SortList->next->schSurname) > 0) {
 				SortList = SortList->next;
 				TempList->next = SortList->next;
 				SortList->next = TempList;
-				pHead = SortList;
+				*pHead = SortList;
 			}
-			return SortList;
+			*pHead = SortList;
+			return;
 		}
-		SortList = pHead;
+		SortList = *pHead;
 	}
 }
 
@@ -231,7 +255,7 @@ void PrintList(student* pHead) {
 		printf("The list is epmty.\n");
 		return;
 	}
-	for (int i = 0; i < nListVolume; i++) {
+	for (int i = 0; TempList != NULL; i++) {
 		printf(" ____________________________________________________");
 		printf("___________________________________________________\n");
 		printf("|\t %s \t|\t %s      \t|\t %s \t|", TempList->schSurname, TempList->schName, TempList->schDate);
@@ -244,7 +268,6 @@ void PrintList(student* pHead) {
 		printf("___________________________________________________\n");
 		TempList = TempList->next;
 	}
-	TempList = pHead;
 }
 
 //-----------------------------------------------------------------------------------------------------------------

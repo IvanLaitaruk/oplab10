@@ -2,9 +2,9 @@
 #define MARKS_AMOUNT 3
 
 typedef struct student {
-	char schSurname[100];
-	char schName[100];
-	char schDate[100];
+	char schSurname[21];
+	char schName[21];
+	char schDate[11];
 	int nMarks[MARKS_AMOUNT];
 	double dblAverageMark;
 	struct student* next;
@@ -17,9 +17,9 @@ void SwapStudentsList(student* pHead);
 void PrintList(student* pHead);
 void FreeList(student** pHead);
 void PrintFileStudents(student* pHead, FILE* filePointer);
-void SetListFromFile(student* pHead, FILE* filePointer);
-student* BubbleSortList(student* pHead);
-student* DeleteStudentFromList(student* pHead, int nStudentNum);
-student* AddStudentToList(student* pHead);
+void SetListFromFile(student* pCur, FILE* filePointer, student** pHead);
+void BubbleSortList(student** pHead);
+void DeleteStudentFromList(student** pHead, int nStudentNum);
+void AddStudentToList(student** pHead);
 
 //-----------------------------------------------------------------------------------------------------------------
